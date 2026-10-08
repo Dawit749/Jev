@@ -127,7 +127,7 @@ Phase 11 was a verification-only activity: real VS Code Extension Host GUI verif
 
 ## Phase 12 — Model Usage & Cost Intelligence
 
-Status: implemented; automated verification complete; pricing configured; Extension Host GUI verification pending manual confirmation.
+Status: complete. Implemented, automated verification passed, pricing configured, and real Extension Host GUI verification passed (manually confirmed).
 
 - Provider-neutral usage normalization (Anthropic, OpenRouter).
 - Estimated cost from server-side, versioned, configuration-driven pricing.

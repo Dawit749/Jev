@@ -6,16 +6,16 @@
 
 ## 2. Status
 
-**Implemented; automated verification complete; pricing configured; Extension Host GUI verification pending manual confirmation.**
+**Complete. Implemented, automated verification passed, pricing configured, and real Extension Host GUI verification passed (manually confirmed).**
 
-Implementation is complete and covered by tests. Pricing is now configured for the repository-supported models using verified official sources. The remaining closure item is the manual Extension Host GUI click-through, which requires human interaction and is not performed by automated checks.
+Phase 12 is closed.
 
 ### Implementation status detail
 
 - Implemented: normalized `ProviderUsage`; Anthropic and OpenRouter usage capture; honest unavailable handling; versioned configuration-driven pricing; estimated cost; in-memory recording by `requestId`; optional `usage`/`cost` on the analysis response; compact UI usage section.
-- Automated verification: complete. Contracts, normalization, pricing, recording, API, provider capture, UI, security, and regression tests pass (baseline 99/99 preserved).
+- Automated verification: complete. Contracts, normalization, pricing, recording, API, provider capture, UI, security, and regression tests pass (baseline 99/99 preserved; 142/142 at closure).
 - Pricing: configured only for models the repository actually supports or resolves, using verified official sources (see §13). Unknown models remain unavailable; nothing is guessed.
-- Extension Host: **PENDING** — the automated end-to-end check drives the real extension modules (client → session → render) against a real server, but the visual VS Code Extension Host click-through requires manual interaction and has not been performed here.
+- Extension Host: **PASS** — manually verified in the real VS Code Extension Host. The Jev view loads, analysis runs, and the Usage section displays provider/model, input/output/total tokens, estimated cost, pricing version, and correct unavailable behavior where applicable. Existing Jev UI remains intact; no secrets, source code, prompts, or raw provider errors are displayed.
 - Unavailable / deferred: persistent usage history; Today/Week/Month windows; budget management and enforcement; billing integration; provider billing APIs; any database; `GET /api/v1/usage/summary`.
 
 ## 3. Goal
@@ -523,4 +523,6 @@ Phase 12 is complete only when:
 - real Extension Host verification passes;
 - Phase 12 is committed as its own focused commit.
 
-Until then, Phase 12 is **formally planned but not implemented**.
+All conditions are met: the regression suite is green (142/142), security and privacy verification passed, the real Extension Host GUI verification passed (manually confirmed), and Phase 12 is committed.
+
+**Status: Phase 12 is complete.**
