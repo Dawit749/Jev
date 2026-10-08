@@ -23,4 +23,15 @@ describe("server configuration", () => {
     ).not.toContain("sk-ant-secret");
     expect(() => loadConfig({ JEV_HOST: "0.0.0.0" })).toThrow(/loopback/);
   });
+
+  it("defaults the OpenRouter model and never exposes its key publicly", () => {
+    const config = loadConfig({ JEV_PROVIDER: "openrouter", OPENROUTER_API_KEY: "sk-or-secret" });
+    expect(config.provider).toBe("openrouter");
+    expect(config.openrouterModel).toBe("openrouter/free");
+    const publicJson = JSON.stringify(publicConfig(config));
+    expect(publicJson).not.toContain("sk-or-secret");
+    expect(publicJson).toContain('"providerConfigured":true');
+    const unconfigured = loadConfig({ JEV_PROVIDER: "openrouter" });
+    expect(JSON.stringify(publicConfig(unconfigured))).toContain('"providerConfigured":false');
+  });
 });

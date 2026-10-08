@@ -30,7 +30,7 @@ describe("extension security boundary", () => {
     expect(packageJson.contributes.configuration.properties["jev.serverUrl"].scope).toBe(
       "application",
     );
-    const banned = ["@anthropic-ai/sdk", "ANTHROPIC_API_KEY", "sk-ant-"];
+    const banned = ["@anthropic-ai/sdk", "ANTHROPIC_API_KEY", "sk-ant-", "OPENROUTER_API_KEY", "sk-or-"];
     for (const file of sourceFiles(path.join(extensionRoot, "src"))) {
       const text = readFileSync(file, "utf8");
       for (const token of banned) {

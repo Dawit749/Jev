@@ -32,6 +32,8 @@ Set `ANTHROPIC_API_KEY` in `.env`. The server reads that file. The extension nev
 
 The configured model defaults to `claude-sonnet-5-5`. Change `ANTHROPIC_MODEL` if you need a different Claude model id. Do not scatter model ids through the UI.
 
+OpenRouter is an optional, cost-conscious provider path. Set `OPENROUTER_API_KEY` in `.env` and start with `JEV_PROVIDER=openrouter` to route analysis through OpenRouter instead of Anthropic. The default OpenRouter model is `openrouter/free`; change `OPENROUTER_MODEL` to use a different OpenRouter model id. Only one provider is active at a time, and the Model Advisor describes the analysis with whichever provider is configured.
+
 Start the local server from the repository root:
 
 ```powershell
@@ -65,7 +67,7 @@ That typechecks, lints, and runs the tests. Tests do not call Anthropic.
 
 ## Limits
 
-The MVP recommends a model. It does not switch models in the editor. GPT and Gemini appear as fit comparisons and are marked not connected. Only Claude is invoked, and only when the server has a key.
+The MVP recommends a model. It does not switch models in the editor. GPT and Gemini appear as fit comparisons and are marked not connected. Only the configured provider is invoked — Claude by default, or OpenRouter when `JEV_PROVIDER=openrouter` — and only when the server has that provider's key.
 
 ## Known limitations
 

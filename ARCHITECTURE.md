@@ -89,6 +89,7 @@ The router must not hard-code the UI to Anthropic.
 
 Initial:
 - AnthropicAdapter
+- OpenRouterAdapter (optional, selected with `JEV_PROVIDER=openrouter`)
 
 Future:
 - OpenAIAdapter

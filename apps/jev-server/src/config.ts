@@ -3,12 +3,16 @@ import path from "node:path";
 
 export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5-5";
 
+export const DEFAULT_OPENROUTER_MODEL = "openrouter/free";
+
 export type ServerConfig = {
   host: string;
   port: number;
-  provider: "anthropic" | "fake";
+  provider: "anthropic" | "fake" | "openrouter";
   anthropicApiKey: string;
   anthropicModel: string;
+  openrouterApiKey?: string;
+  openrouterModel?: string;
 };
 
 export function parseEnvFile(text: string): Record<string, string> {
@@ -91,12 +95,20 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error("JEV_PORT must be a valid port.");
   }
+  const provider =
+    env.JEV_PROVIDER === "fake"
+      ? "fake"
+      : env.JEV_PROVIDER === "openrouter"
+        ? "openrouter"
+        : "anthropic";
   return {
     host,
     port,
-    provider: env.JEV_PROVIDER === "fake" ? "fake" : "anthropic",
+    provider,
     anthropicApiKey: env.ANTHROPIC_API_KEY?.trim() ?? "",
     anthropicModel: env.ANTHROPIC_MODEL?.trim() || DEFAULT_ANTHROPIC_MODEL,
+    openrouterApiKey: env.OPENROUTER_API_KEY?.trim() ?? "",
+    openrouterModel: env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODEL,
   };
 }
 
@@ -105,13 +117,16 @@ export function publicConfig(config: ServerConfig): {
   port: number;
   provider: string;
   model: string;
-  anthropicConfigured: boolean;
+  providerConfigured: boolean;
 } {
+  const openrouter = config.provider === "openrouter";
   return {
     host: config.host,
     port: config.port,
     provider: config.provider,
-    model: config.anthropicModel,
-    anthropicConfigured: config.anthropicApiKey.length > 0,
+    model: openrouter ? (config.openrouterModel ?? DEFAULT_OPENROUTER_MODEL) : config.anthropicModel,
+    providerConfigured: openrouter
+      ? (config.openrouterApiKey ?? "").length > 0
+      : config.anthropicApiKey.length > 0,
   };
 }

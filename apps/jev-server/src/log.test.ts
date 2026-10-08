@@ -37,4 +37,13 @@ describe("safe logger", () => {
     expect(line).not.toContain("super-secret-token");
     expect(line).not.toContain("Bearer");
   });
+
+  it("drops fields containing an OpenRouter key", () => {
+    const lines: string[] = [];
+    const log = createSafeLogger((line) => lines.push(line));
+    log("request.failed", { requestId: "req_3", note: "token sk-or-v1-abc123 leaked" });
+    const line = lines[0] ?? "";
+    expect(line).toContain("req_3");
+    expect(line).not.toContain("sk-or-");
+  });
 });

@@ -1,5 +1,5 @@
 const SECRET_SHAPED =
-  /sk-ant-[A-Za-z0-9_-]{4,}|Bearer\s+\S+|-----BEGIN [A-Z0-9 ]*(?:PRIVATE KEY|CERTIFICATE)-----/i;
+  /sk-ant-[A-Za-z0-9_-]{4,}|sk-or-[A-Za-z0-9_-]{4,}|Bearer\s+\S+|-----BEGIN [A-Z0-9 ]*(?:PRIVATE KEY|CERTIFICATE)-----/i;
 
 const FORBIDDEN_KEYS = new Set([
   "content",

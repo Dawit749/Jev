@@ -19,9 +19,12 @@ interface ModelRouter {
 }
 ```
 
-## Initial provider
+## Initial providers
 
-Anthropic.
+- Anthropic (Claude) — the default reasoning provider.
+- OpenRouter — an optional, cost-conscious path selected with `JEV_PROVIDER=openrouter`.
+
+Both implement the same provider-neutral interface, so the UI describes the analysis using whichever provider is configured and does not depend on either one.
 
 ## Future providers
 

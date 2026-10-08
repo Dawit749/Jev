@@ -23,8 +23,11 @@ export class ProviderRequestError extends Error {
   readonly code = "PROVIDER_UNAVAILABLE";
   readonly status = 503;
 
-  constructor(readonly providerStatus: number | undefined) {
-    super(messageForProviderStatus(providerStatus));
+  constructor(
+    readonly providerStatus: number | undefined,
+    message?: string,
+  ) {
+    super(message ?? messageForProviderStatus(providerStatus));
     this.name = "ProviderRequestError";
   }
 }

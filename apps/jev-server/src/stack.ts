@@ -1,6 +1,7 @@
-import type { ServerConfig } from "./config.js";
+import { DEFAULT_OPENROUTER_MODEL, type ServerConfig } from "./config.js";
 import { FakeProvider } from "./providers/fake.js";
 import { AnthropicProvider } from "./providers/anthropic.js";
+import { OpenRouterProvider } from "./providers/openrouter.js";
 import type { CompletionClient, ModelProvider } from "./providers/types.js";
 import { UnavailableProvider } from "./providers/unavailable.js";
 import { CLAUDE_PROFILE, GEMINI_PROFILE, GPT_PROFILE, type ScoreableModel } from "./scoring.js";
@@ -45,16 +46,36 @@ export function comparisonCatalog(
 
 export function createStack(config: ServerConfig, complete?: CompletionClient): AnalysisStack {
   const claudeAvailable = config.provider === "anthropic" && config.anthropicApiKey.length > 0;
+  const openrouterModel = config.openrouterModel ?? DEFAULT_OPENROUTER_MODEL;
+  const openrouterAvailable =
+    config.provider === "openrouter" && (config.openrouterApiKey ?? "").length > 0;
+  const catalog = comparisonCatalog(claudeAvailable, config.anthropicModel);
+  if (config.provider === "openrouter") {
+    catalog.push({
+      provider: "openrouter",
+      label: "OpenRouter",
+      model: openrouterModel,
+      available: openrouterAvailable,
+      order: catalog.length,
+      profile: CLAUDE_PROFILE,
+    });
+  }
   return {
     analyst:
       config.provider === "fake"
         ? new FakeProvider()
-        : new AnthropicProvider({
-            apiKey: config.anthropicApiKey,
-            model: config.anthropicModel,
-            ...(complete ? { complete } : {}),
-          }),
-    catalog: comparisonCatalog(claudeAvailable, config.anthropicModel),
+        : config.provider === "openrouter"
+          ? new OpenRouterProvider({
+              apiKey: config.openrouterApiKey ?? "",
+              model: openrouterModel,
+              ...(complete ? { complete } : {}),
+            })
+          : new AnthropicProvider({
+              apiKey: config.anthropicApiKey,
+              model: config.anthropicModel,
+              ...(complete ? { complete } : {}),
+            }),
+    catalog,
     placeholders: [
       new UnavailableProvider("openai", "GPT", "gpt", GPT_PROFILE),
       new UnavailableProvider("google", "Gemini", "gemini", GEMINI_PROFILE),
