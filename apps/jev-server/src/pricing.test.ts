@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PricingProfile, ProviderUsage } from "@jev/contracts";
-import { estimateCost, findPricingProfile } from "./pricing.js";
+import { PRICING_PROFILES, estimateCost, findPricingProfile } from "./pricing.js";
 
 const profiles: PricingProfile[] = [
   {
@@ -108,5 +108,62 @@ describe("cost estimation", () => {
       profiles,
     );
     expect(estimate?.amount).toBeCloseTo(0.004, 6);
+  });
+});
+
+describe("configured production pricing profiles", () => {
+  it("prices the supported Anthropic model using per-token conversion", () => {
+    const profile = findPricingProfile("anthropic", "claude-sonnet-5-5", PRICING_PROFILES);
+    expect(profile).toBeDefined();
+    // $2 / MTok input -> 0.000002 per token; $10 / MTok output -> 0.00001 per token.
+    expect(profile?.inputTokenPrice).toBe(0.000002);
+    expect(profile?.outputTokenPrice).toBe(0.00001);
+    expect(profile?.currency).toBe("USD");
+    expect(profile?.pricingVersion).toBe("v1");
+  });
+
+  it("computes a correct combined cost for the supported Anthropic model", () => {
+    const estimate = estimateCost(
+      { provider: "anthropic", model: "claude-sonnet-5-5", source: "provider", inputTokens: 1_000_000, outputTokens: 1_000_000 },
+      PRICING_PROFILES,
+    );
+    // 1,000,000 x $2/MTok + 1,000,000 x $10/MTok = $2 + $10 = $12.
+    expect(estimate?.amount).toBe(12);
+    expect(estimate?.currency).toBe("USD");
+    expect(estimate?.pricingVersion).toBe("v1");
+    expect(estimate?.estimated).toBe(true);
+  });
+
+  it("computes input-only and output-only costs for the supported model", () => {
+    const inputOnly = estimateCost(
+      { provider: "anthropic", model: "claude-sonnet-5-5", source: "provider", inputTokens: 500_000 },
+      PRICING_PROFILES,
+    );
+    expect(inputOnly?.amount).toBeCloseTo(1, 6);
+
+    const outputOnly = estimateCost(
+      { provider: "anthropic", model: "claude-sonnet-5-5", source: "provider", outputTokens: 500_000 },
+      PRICING_PROFILES,
+    );
+    expect(outputOnly?.amount).toBeCloseTo(5, 6);
+  });
+
+  it("prices the supported free OpenRouter model at zero", () => {
+    const estimate = estimateCost(
+      { provider: "openrouter", model: "openrouter/free", source: "provider", inputTokens: 10_000, outputTokens: 5_000 },
+      PRICING_PROFILES,
+    );
+    expect(estimate?.amount).toBe(0);
+    expect(estimate?.currency).toBe("USD");
+  });
+
+  it("leaves unsupported models without pricing as unavailable", () => {
+    expect(
+      estimateCost(
+        { provider: "anthropic", model: "claude-not-supported", source: "provider", inputTokens: 1_000 },
+        PRICING_PROFILES,
+      ),
+    ).toBeUndefined();
+    expect(findPricingProfile("openai", "gpt", PRICING_PROFILES)).toBeUndefined();
   });
 });

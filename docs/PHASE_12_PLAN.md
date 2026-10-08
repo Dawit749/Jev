@@ -6,16 +6,17 @@
 
 ## 2. Status
 
-**Implemented and verified.** Documentation reflects completed work.
+**Implemented; automated verification complete; pricing configured; Extension Host GUI verification pending manual confirmation.**
 
-Provider usage normalization, Anthropic and OpenRouter usage capture, versioned pricing, estimated cost, in-memory usage recording, the optional usage/cost fields on `/api/v1/analysis`, and the compact result-UI usage section are implemented and covered by tests. Nothing became a database, persistent history, budget system, or analytics dashboard.
+Implementation is complete and covered by tests. Pricing is now configured for the repository-supported models using verified official sources. The remaining closure item is the manual Extension Host GUI click-through, which requires human interaction and is not performed by automated checks.
 
 ### Implementation status detail
 
 - Implemented: normalized `ProviderUsage`; Anthropic and OpenRouter usage capture; honest unavailable handling; versioned configuration-driven pricing; estimated cost; in-memory recording by `requestId`; optional `usage`/`cost` on the analysis response; compact UI usage section.
-- Tested: contracts, normalization, pricing, recording, API, provider capture, UI, security, and regression (baseline 99/99 preserved).
+- Automated verification: complete. Contracts, normalization, pricing, recording, API, provider capture, UI, security, and regression tests pass (baseline 99/99 preserved).
+- Pricing: configured only for models the repository actually supports or resolves, using verified official sources (see §13). Unknown models remain unavailable; nothing is guessed.
+- Extension Host: **PENDING** — the automated end-to-end check drives the real extension modules (client → session → render) against a real server, but the visual VS Code Extension Host click-through requires manual interaction and has not been performed here.
 - Unavailable / deferred: persistent usage history; Today/Week/Month windows; budget management and enforcement; billing integration; provider billing APIs; any database; `GET /api/v1/usage/summary`.
-- Known limitation: the repository ships an **empty** pricing table by default, so cost is `Unavailable` until pricing profiles are configured locally. No production prices are fabricated.
 
 ## 3. Goal
 
@@ -213,6 +214,17 @@ Rules:
 - Unknown pricing → `amount = unavailable`. Never fabricate a cost.
 - Do not assume USD unless the configured pricing profile specifies it; always carry `currency`.
 - Exact unit conversion and rounding are implementation details to be defined later.
+
+### Configured pricing profiles
+
+Prices are stored **per token**. Providers publish prices per million tokens (MTok), so those values are divided by 1,000,000.
+
+| Provider | Model | Input (per token) | Output (per token) | Currency | Version | Effective | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| anthropic | `claude-sonnet-5-5` | 0.000002 ($2 / MTok) | 0.00001 ($10 / MTok) | USD | v1 | 2026-10-08 | Anthropic official pricing: docs.anthropic.com/en/docs/about-claude/pricing |
+| openrouter | `openrouter/free` | 0 | 0 | USD | v1 | 2026-10-08 | OpenRouter official models API: openrouter.ai/api/v1/models (`pricing.prompt`/`completion` = "0") |
+
+Models the repository does not support (for example `gpt`, `gemini`) are intentionally left **Pricing unavailable**. Any OpenRouter model other than `openrouter/free` that a user configures through `OPENROUTER_MODEL` is also **Pricing unavailable** until a verified profile is added, because the free meta-router can resolve to a different underlying model. No price is guessed.
 
 ### Model aliases
 

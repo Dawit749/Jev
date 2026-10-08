@@ -177,7 +177,7 @@ describe("analysis API usage and cost", () => {
       outputTokens: 1_000,
       source: "provider",
     };
-    await withServer(stackWith(analystWith(usage), false), async (url) => {
+    await withServer({ ...stackWith(analystWith(usage), false), pricing: [] }, async (url) => {
       const response = await post(url, body);
       const parsed = JSON.parse(response.body) as { cost?: unknown; usage: ProviderUsage };
       expect(parsed.cost).toBeUndefined();
