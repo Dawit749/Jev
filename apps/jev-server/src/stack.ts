@@ -1,4 +1,5 @@
 import { DEFAULT_OPENROUTER_MODEL, type ServerConfig } from "./config.js";
+import type { PricingProfile } from "@jev/contracts";
 import { FakeProvider } from "./providers/fake.js";
 import { AnthropicProvider } from "./providers/anthropic.js";
 import { OpenRouterProvider } from "./providers/openrouter.js";
@@ -10,6 +11,7 @@ export type AnalysisStack = {
   analyst: ModelProvider;
   catalog: ScoreableModel[];
   placeholders: ModelProvider[];
+  pricing?: readonly PricingProfile[];
 };
 
 export function comparisonCatalog(

@@ -1,4 +1,4 @@
-import { LIMITS, providerOutputSchema } from "@jev/contracts";
+import { LIMITS, providerOutputSchema, type ProviderUsage } from "@jev/contracts";
 import {
   ContextLimitError,
   InvalidProviderResponseError,
@@ -10,6 +10,7 @@ import {
 } from "../errors.js";
 import { ANALYSIS_SYSTEM_PROMPT, buildAnalysisUserPrompt } from "../prompt.js";
 import { CLAUDE_PROFILE } from "../scoring.js";
+import { normalizeUsage, coerceUsage } from "../usage.js";
 import type {
   CompletionClient,
   ModelProvider,
@@ -62,11 +63,19 @@ export function createOpenRouterCompletionClient(): CompletionClient {
     if (content == null) {
       throw new InvalidProviderResponseError();
     }
+    let output: unknown;
     try {
-      return JSON.parse(stripCodeFences(content)) as unknown;
+      output = JSON.parse(stripCodeFences(content)) as unknown;
     } catch {
       throw new InvalidProviderResponseError();
     }
+    const resolvedModel = extractResolvedModel(payload) ?? request.model;
+    const usage = normalizeUsage({
+      provider: "openrouter",
+      model: resolvedModel,
+      rawUsage: extractUsage(payload),
+    });
+    return { output, usage };
   };
 }
 
@@ -112,12 +121,29 @@ export class OpenRouterProvider implements ModelProvider {
     } catch (error) {
       throw mapOpenRouterError(error);
     }
-    const parsed = providerOutputSchema.safeParse(normalizeProviderOutput(raw));
+    const { output, usage } = splitCompletion(raw, this.options.model ?? DEFAULT_MODEL);
+    const parsed = providerOutputSchema.safeParse(normalizeProviderOutput(output));
     if (!parsed.success) {
       throw new InvalidProviderResponseError();
     }
-    return parsed.data;
+    return usage ? { ...parsed.data, usage } : parsed.data;
   }
+}
+
+function splitCompletion(
+  raw: unknown,
+  fallbackModel: string,
+): { output: unknown; usage?: ProviderUsage } {
+  if (
+    raw &&
+    typeof raw === "object" &&
+    "output" in raw &&
+    !("findings" in (raw as Record<string, unknown>))
+  ) {
+    const record = raw as { output: unknown; usage?: ProviderUsage };
+    return { output: record.output, usage: coerceUsage("openrouter", fallbackModel, record.usage) };
+  }
+  return { output: raw };
 }
 
 function measuredContextChars(input: ProviderAnalysisInput): number {
@@ -183,14 +209,11 @@ function openRouterErrorMessage(status: number | undefined): string {
 }
 
 function extractMessageContent(payload: unknown): string | undefined {
-  if (!payload || typeof payload !== "object") {
+  const choices = readChoices(payload);
+  if (!choices) {
     return undefined;
   }
-  const record = payload as { choices?: unknown };
-  if (!Array.isArray(record.choices) || record.choices.length === 0) {
-    return undefined;
-  }
-  const first = record.choices[0];
+  const first = choices[0];
   if (!first || typeof first !== "object") {
     return undefined;
   }
@@ -200,6 +223,39 @@ function extractMessageContent(payload: unknown): string | undefined {
   }
   const content = (message as { content?: unknown }).content;
   return typeof content === "string" ? content : undefined;
+}
+
+function extractResolvedModel(payload: unknown): string | undefined {
+  if (payload && typeof payload === "object") {
+    const model = (payload as { model?: unknown }).model;
+    if (typeof model === "string" && model.length > 0) {
+      return model;
+    }
+  }
+  const choices = readChoices(payload);
+  const first = choices?.[0];
+  if (first && typeof first === "object") {
+    const model = (first as { model?: unknown }).model;
+    if (typeof model === "string" && model.length > 0) {
+      return model;
+    }
+  }
+  return undefined;
+}
+
+function extractUsage(payload: unknown): unknown {
+  if (payload && typeof payload === "object") {
+    return (payload as { usage?: unknown }).usage;
+  }
+  return undefined;
+}
+
+function readChoices(payload: unknown): unknown[] | undefined {
+  if (!payload || typeof payload !== "object") {
+    return undefined;
+  }
+  const choices = (payload as { choices?: unknown }).choices;
+  return Array.isArray(choices) && choices.length > 0 ? choices : undefined;
 }
 
 function stripCodeFences(content: string): string {

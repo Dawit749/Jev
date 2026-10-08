@@ -21,4 +21,8 @@ export const LIMITS = {
   maxUncertaintyChars: 500,
   maxReasonChars: 200,
   maxReasons: 6,
+  maxTokenCount: 100_000_000,
+  maxTokenPrice: 1_000_000,
+  maxCostAmount: 1_000_000,
+  maxUsageRecords: 500,
 } as const;

@@ -1,4 +1,4 @@
-import type { ProviderFinding } from "@jev/contracts";
+import type { ProviderFinding, ProviderUsage } from "@jev/contracts";
 import type { ModelProfile } from "../scoring.js";
 
 export type ProviderCapabilities = {
@@ -23,6 +23,7 @@ export type ProviderAnalysis = {
   summary: string;
   recommendation: string;
   findings: ProviderFinding[];
+  usage?: ProviderUsage;
 };
 
 export interface ModelProvider {

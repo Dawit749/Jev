@@ -1,4 +1,4 @@
-import type { FindingCategory, ModelScore, Severity } from "@jev/contracts";
+import type { CostEstimate, FindingCategory, ModelScore, ProviderUsage, Severity } from "@jev/contracts";
 import { findingAt, LOADING_STEPS, type SessionView } from "../session";
 import { JEV_VERSION } from "../version";
 
@@ -96,6 +96,7 @@ ${scores.map((score) => renderScore(score)).join("")}
 </ol>
 <p>Analysis ran on ${escapeHtml(view.result.analysisProvider.label)} (${escapeHtml(view.result.analysisProvider.model)}).</p>
 </section>
+${renderUsage(view.result.usage, view.result.cost)}
 <section>
 <h2>Findings</h2>
 ${findings || "<p>No findings were produced from the supplied context.</p>"}
@@ -158,6 +159,40 @@ function renderScore(score: ModelScore): string {
 <span class="meta">${escapeHtml(score.fitStatement)}</span>
 <span class="meta">${escapeHtml(score.reasons.join(" · "))}</span>
 </li>`;
+}
+
+function renderUsage(usage: ProviderUsage | undefined, cost: CostEstimate | undefined): string {
+  const input = usage?.inputTokens !== undefined ? formatNumber(usage.inputTokens) : "Unavailable";
+  const output =
+    usage?.outputTokens !== undefined ? formatNumber(usage.outputTokens) : "Unavailable";
+  const total = usage?.totalTokens !== undefined ? formatNumber(usage.totalTokens) : "Unavailable";
+  const costLine =
+    cost?.amount !== undefined
+      ? `Estimated cost: ${formatCost(cost.amount, cost.currency)}`
+      : "Estimated cost: Unavailable";
+  const pricingLine = cost?.pricingVersion
+    ? `<p class="meta">Pricing: ${escapeHtml(cost.pricingVersion)}</p>`
+    : "";
+  return `<section>
+<h2>Usage</h2>
+<p>Model: ${escapeHtml(usage?.model ?? "Unavailable")}</p>
+<p>Input: ${input}</p>
+<p>Output: ${output}</p>
+<p>Total: ${total}</p>
+<p>${escapeHtml(costLine)}</p>
+${pricingLine}
+</section>`;
+}
+
+function formatNumber(value: number): string {
+  return value.toLocaleString("en-US");
+}
+
+function formatCost(amount: number, currency: string): string {
+  const symbols: Record<string, string> = { USD: "$", EUR: "\u20ac", GBP: "\u00a3" };
+  const symbol = symbols[currency.toUpperCase()];
+  const formatted = amount.toFixed(3);
+  return symbol ? `${symbol}${formatted}` : `${formatted} ${currency}`;
 }
 
 function renderContext(files: readonly string[], notice: string | undefined): string {

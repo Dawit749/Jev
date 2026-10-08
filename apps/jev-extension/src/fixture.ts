@@ -73,6 +73,15 @@ export function sampleResponse(): AnalysisResponse {
       },
     ],
     context: { includedFiles: ["src/api/authController.ts"], narrowed: false },
+    usage: {
+      provider: "anthropic",
+      model: "claude-sonnet-5-5",
+      inputTokens: 12_450,
+      outputTokens: 2_180,
+      totalTokens: 14_630,
+      source: "provider",
+    },
+    cost: { amount: 0.042, currency: "USD", pricingVersion: "v1", estimated: true },
   };
 }
 

@@ -1,14 +1,20 @@
 import {
   LIMITS,
   providerOutputSchema,
+  providerUsageSchema,
   recommendationResponseSchema,
   type AnalysisRequest,
   type AnalysisResponse,
+  type CostEstimate,
+  type ProviderUsage,
 } from "@jev/contracts";
 import { HttpError, InvalidProviderResponseError, InvalidRecommendationError } from "./errors.js";
 import { publishFindings } from "./findings.js";
+import { estimateCost } from "./pricing.js";
 import type { ProviderAnalysisInput } from "./providers/types.js";
 import { scoreModels, type ScoredRecommendation } from "./scoring.js";
+import { unavailableUsage } from "./usage.js";
+import type { UsageRecorder } from "./usageRecord.js";
 import type { AnalysisStack } from "./stack.js";
 
 export type ModelRecommendationInput = {
@@ -23,7 +29,7 @@ export type AnalysisResult = Omit<AnalysisResponse, "requestId" | "context">;
 
 export interface ModelRouter {
   recommend(input: ModelRecommendationInput): Promise<ModelRecommendation>;
-  analyze(input: AnalysisRequest): Promise<AnalysisResult>;
+  analyze(input: AnalysisRequest, requestId?: string): Promise<AnalysisResult>;
 }
 
 function assertRecommendationInput(input: ModelRecommendationInput): void {
@@ -68,7 +74,10 @@ function toProviderInput(input: AnalysisRequest): ProviderAnalysisInput {
 }
 
 export class JevModelRouter implements ModelRouter {
-  constructor(private readonly stack: AnalysisStack) {}
+  constructor(
+    private readonly stack: AnalysisStack,
+    private readonly recorder?: UsageRecorder,
+  ) {}
 
   async recommend(input: ModelRecommendationInput): Promise<ModelRecommendation> {
     assertRecommendationInput(input);
@@ -103,7 +112,7 @@ export class JevModelRouter implements ModelRouter {
     });
   }
 
-  async analyze(input: AnalysisRequest): Promise<AnalysisResult> {
+  async analyze(input: AnalysisRequest, requestId = "req_local"): Promise<AnalysisResult> {
     const recommendation = await this.recommend({
       task: input.task,
       contextChars: estimateContextChars(input),
@@ -116,6 +125,9 @@ export class JevModelRouter implements ModelRouter {
     }
     const findings = publishFindings(parsed.data.findings, input);
     const capabilities = this.stack.analyst.capabilities();
+    const usage = this.resolveUsage(raw.usage, capabilities.id, capabilities.model);
+    const cost = estimateCost(usage, this.stack.pricing);
+    this.recordUsage({ requestId, usage, cost });
     return {
       modelRecommendation: recommendation.primary,
       alternatives: recommendation.alternatives,
@@ -130,6 +142,42 @@ export class JevModelRouter implements ModelRouter {
       summary: parsed.data.summary,
       recommendation: parsed.data.recommendation,
       findings,
+      usage,
+      ...(cost ? { cost } : {}),
     };
+  }
+
+  private resolveUsage(
+    reported: ProviderUsage | undefined,
+    provider: string,
+    model: string,
+  ): ProviderUsage {
+    if (!reported) {
+      return unavailableUsage(provider, model);
+    }
+    const parsed = providerUsageSchema.safeParse(reported);
+    if (!parsed.success) {
+      return unavailableUsage(provider, model);
+    }
+    return parsed.data;
+  }
+
+  private recordUsage(entry: {
+    requestId: string;
+    usage: ProviderUsage;
+    cost: CostEstimate | undefined;
+  }): void {
+    if (!this.recorder) {
+      return;
+    }
+    try {
+      this.recorder.record({
+        requestId: entry.requestId,
+        usage: entry.usage,
+        ...(entry.cost ? { cost: entry.cost } : {}),
+      });
+    } catch {
+      // Usage recording must never fail an otherwise valid analysis.
+    }
   }
 }

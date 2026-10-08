@@ -12,6 +12,7 @@ import { assertSafeAnalysisRequest, includedFiles } from "./guard.js";
 import type { SafeLogger } from "./log.js";
 import { JevModelRouter } from "./router.js";
 import type { AnalysisStack } from "./stack.js";
+import { UsageRecorder } from "./usageRecord.js";
 
 export type AppOptions = {
   stack: AnalysisStack;
@@ -20,6 +21,7 @@ export type AppOptions = {
   rateLimit?: number;
   rateWindowMs?: number;
   maxBytes?: number;
+  usage?: UsageRecorder;
 };
 
 type RunningServer = {
@@ -40,7 +42,7 @@ export function createApp(options: AppOptions) {
   const rateWindowMs = options.rateWindowMs ?? 60_000;
   const maxBytes = options.maxBytes ?? LIMITS.maxRequestBytes;
   const hits: number[] = [];
-  const router = new JevModelRouter(options.stack);
+  const router = new JevModelRouter(options.stack, options.usage);
 
   function allow(current: number): boolean {
     const windowStart = current - rateWindowMs;
@@ -138,7 +140,7 @@ export function createApp(options: AppOptions) {
         );
       }
       assertSafeAnalysisRequest(parsed.data);
-      const analysis = await router.analyze(parsed.data);
+      const analysis = await router.analyze(parsed.data, requestId);
       const response = analysisResponseSchema.parse({
         requestId,
         ...analysis,
@@ -156,6 +158,17 @@ export function createApp(options: AppOptions) {
         provider: response.analysisProvider.provider,
         findingCount: response.findings.length,
         taskChars: parsed.data.task.length,
+        usageSource: response.usage?.source ?? "unavailable",
+        ...(response.usage?.inputTokens !== undefined
+          ? { inputTokens: response.usage.inputTokens }
+          : {}),
+        ...(response.usage?.outputTokens !== undefined
+          ? { outputTokens: response.usage.outputTokens }
+          : {}),
+        ...(response.usage?.totalTokens !== undefined
+          ? { totalTokens: response.usage.totalTokens }
+          : {}),
+        ...(response.cost?.amount !== undefined ? { costAmount: response.cost.amount } : {}),
       });
     } catch (error) {
       const mapped = mapError(error);

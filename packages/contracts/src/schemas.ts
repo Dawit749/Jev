@@ -128,6 +128,35 @@ export const analysisProviderSchema = z.object({
   label: z.string().min(1).max(40),
 });
 
+export const usageSourceSchema = z.enum(["provider", "estimated", "unavailable"]);
+
+export const providerUsageSchema = z.object({
+  provider: z.string().min(1).max(40),
+  model: z.string().min(1).max(80),
+  inputTokens: z.number().int().nonnegative().max(LIMITS.maxTokenCount).optional(),
+  outputTokens: z.number().int().nonnegative().max(LIMITS.maxTokenCount).optional(),
+  totalTokens: z.number().int().nonnegative().max(LIMITS.maxTokenCount).optional(),
+  source: usageSourceSchema,
+});
+
+export const costEstimateSchema = z.object({
+  amount: z.number().nonnegative().max(LIMITS.maxCostAmount).optional(),
+  currency: z.string().min(1).max(10),
+  pricingVersion: z.string().min(1).max(40),
+  estimated: z.literal(true),
+  note: z.string().min(1).max(200).optional(),
+});
+
+export const pricingProfileSchema = z.object({
+  provider: z.string().min(1).max(40),
+  model: z.string().min(1).max(80),
+  inputTokenPrice: z.number().nonnegative().max(LIMITS.maxTokenPrice),
+  outputTokenPrice: z.number().nonnegative().max(LIMITS.maxTokenPrice),
+  currency: z.string().min(1).max(10),
+  effectiveDate: z.string().min(1).max(40),
+  pricingVersion: z.string().min(1).max(40),
+});
+
 export const analysisResponseSchema = z.object({
   requestId: z.string().min(1).max(80),
   modelRecommendation: modelScoreSchema,
@@ -143,6 +172,8 @@ export const analysisResponseSchema = z.object({
     includedFiles: z.array(z.string().min(1).max(LIMITS.maxPathChars)).max(20),
     narrowed: z.boolean(),
   }),
+  usage: providerUsageSchema.optional(),
+  cost: costEstimateSchema.optional(),
 });
 
 export const recommendationRequestSchema = z.object({
@@ -194,3 +225,7 @@ export type RecommendationResponse = z.infer<typeof recommendationResponseSchema
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 export type ProviderOutput = z.infer<typeof providerOutputSchema>;
+export type UsageSource = z.infer<typeof usageSourceSchema>;
+export type ProviderUsage = z.infer<typeof providerUsageSchema>;
+export type CostEstimate = z.infer<typeof costEstimateSchema>;
+export type PricingProfile = z.infer<typeof pricingProfileSchema>;

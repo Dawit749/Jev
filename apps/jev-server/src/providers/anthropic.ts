@@ -1,6 +1,6 @@
 import Anthropic, { APIConnectionTimeoutError } from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { LIMITS, providerOutputSchema } from "@jev/contracts";
+import { LIMITS, providerOutputSchema, type ProviderUsage } from "@jev/contracts";
 import {
   ContextLimitError,
   InvalidProviderResponseError,
@@ -12,6 +12,7 @@ import {
 } from "../errors.js";
 import { ANALYSIS_SYSTEM_PROMPT, buildAnalysisUserPrompt } from "../prompt.js";
 import { CLAUDE_PROFILE } from "../scoring.js";
+import { normalizeUsage, coerceUsage } from "../usage.js";
 import type {
   CompletionClient,
   ModelProvider,
@@ -38,7 +39,14 @@ export function createAnthropicCompletionClient(): CompletionClient {
       if (message.parsed_output == null) {
         throw new InvalidProviderResponseError();
       }
-      return message.parsed_output;
+      const resolvedModel =
+        typeof message.model === "string" && message.model.length > 0 ? message.model : request.model;
+      const usage = normalizeUsage({
+        provider: "anthropic",
+        model: resolvedModel,
+        rawUsage: message.usage,
+      });
+      return { output: message.parsed_output, usage };
     } catch (error) {
       throw mapCompletionError(error);
     }
@@ -108,10 +116,28 @@ export class AnthropicProvider implements ModelProvider {
     } catch (error) {
       throw mapCompletionError(error);
     }
-    const parsed = providerOutputSchema.safeParse(raw);
+    const { output, usage } = splitCompletion(raw, "anthropic", this.options.model);
+    const parsed = providerOutputSchema.safeParse(output);
     if (!parsed.success) {
       throw new InvalidProviderResponseError();
     }
-    return parsed.data;
+    return usage ? { ...parsed.data, usage } : parsed.data;
   }
+}
+
+function splitCompletion(
+  raw: unknown,
+  provider: string,
+  fallbackModel: string,
+): { output: unknown; usage?: ProviderUsage } {
+  if (
+    raw &&
+    typeof raw === "object" &&
+    "output" in raw &&
+    !("findings" in (raw as Record<string, unknown>))
+  ) {
+    const record = raw as { output: unknown; usage?: ProviderUsage };
+    return { output: record.output, usage: coerceUsage(provider, fallbackModel, record.usage) };
+  }
+  return { output: raw };
 }

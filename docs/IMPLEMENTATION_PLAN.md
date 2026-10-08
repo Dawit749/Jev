@@ -120,3 +120,18 @@ Prepare:
 - background analysis
 - additional providers
 - autonomous execution
+
+## Phase 11 — Verification
+
+Phase 11 was a verification-only activity: real VS Code Extension Host GUI verification. It is not an implementation phase and produced no product-code changes or implementation commit.
+
+## Phase 12 — Model Usage & Cost Intelligence
+
+Status: implemented and verified.
+
+- Provider-neutral usage normalization (Anthropic, OpenRouter).
+- Estimated cost from server-side, versioned, configuration-driven pricing.
+- In-memory server-side usage recording. No database.
+- Compact usage section in the existing result UI.
+
+Full plan: docs/PHASE_12_PLAN.md
