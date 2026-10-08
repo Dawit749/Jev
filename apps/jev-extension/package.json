@@ -1,0 +1,88 @@
+{
+  "name": "jev-extension",
+  "displayName": "Jev",
+  "description": "AI engineering intelligence for model choice, architecture risk, and explainable recommendations.",
+  "version": "0.1.0",
+  "publisher": "jev",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:jev.sidebar",
+    "onCommand:jev.open"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "jev.open",
+        "title": "Jev: Open",
+        "category": "Jev"
+      },
+      {
+        "command": "jev.review",
+        "title": "Jev: Review Finding",
+        "category": "Jev"
+      },
+      {
+        "command": "jev.why",
+        "title": "Jev: Why",
+        "category": "Jev"
+      },
+      {
+        "command": "jev.dismiss",
+        "title": "Jev: Dismiss Finding",
+        "category": "Jev"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "jev",
+          "title": "Jev",
+          "icon": "media/jev.svg"
+        }
+      ]
+    },
+    "views": {
+      "jev": [
+        {
+          "type": "webview",
+          "id": "jev.sidebar",
+          "name": "Jev"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Jev",
+      "properties": {
+        "jev.serverUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8787",
+          "description": "Loopback URL of the local Jev server. This is an application setting so a workspace cannot redirect source context.",
+          "scope": "application"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@jev/contracts": "0.1.0",
+    "@jev/shared": "0.1.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.2"
+  }
+}
